@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Config files potentially containing sensitive information
+/work_paths.txt
+/work_domains.txt
+/work_drop.txt
+/.work_mode
