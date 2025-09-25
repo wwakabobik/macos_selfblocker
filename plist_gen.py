@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
-import plistlib
-import sys
-import json
-from pathlib import Path
-import getpass
-from typing import List, Dict, Optional
 
-def generate_plist(label: str, script_path: str, args: list, log_dir: Path, schedule: List[Dict]) -> dict:
+
+import getpass
+import json
+import plistlib
+import subprocess
+import sys
+
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+from commons import log
+
+
+BASE_DIR = Path(__file__).resolve().parent
+MAIN_SCRIPT = BASE_DIR / 'work_control.py'
+SCHEDULE_FILE = BASE_DIR / 'workblocker_schedule.json'
+LOG_DIR = Path.home() / 'Library' / 'Logs' / 'workblocker'
+
+
+def generate_plist(label: str, script_path: str, action: str, log_dir: Path, schedule: List[Dict]) -> dict:
     """
     Generate a plist dictionary for launchd.
 
@@ -14,8 +27,8 @@ def generate_plist(label: str, script_path: str, args: list, log_dir: Path, sche
     :type label: str
     :param script_path: path to the script to run
     :type script_path: str
-    :param args: list of arguments for the script
-    :type args: list
+    :param action: action to pass to the script ('block' or 'unblock')
+    :type action: str
     :param log_dir: directory for log files
     :type log_dir: Path
     :param schedule: list of schedule dictionaries
@@ -25,18 +38,15 @@ def generate_plist(label: str, script_path: str, args: list, log_dir: Path, sche
     """
     plist_dict = {
         'Label': label,
-        'ProgramArguments': ['/usr/bin/sudo', script_path] + args,
-        'RunAtLoad': True,
-        'StandardOutPath': str(Path(log_dir) / f"{label}_stdout.log"),
-        'StandardErrorPath': str(Path(log_dir) / f"{label}_stderr.log"),
+        'ProgramArguments': [str(script_path), action],
+        'RunAtLoad': False,
+        'StandardOutPath': str(log_dir / f"{label}_stdout.log"),
+        'StandardErrorPath': str(log_dir / f"{label}_stderr.log"),
         'LimitLoadToSessionType': 'Aqua',
     }
 
-    if len(schedule) == 1:
-        plist_dict['StartCalendarInterval'] = schedule[0]
-    else:
-        for i, entry in enumerate(schedule, start=1):
-            plist_dict[f'StartCalendarInterval{i}'] = entry
+    if schedule:
+        plist_dict['StartCalendarInterval'] = schedule
 
     return plist_dict
 
@@ -52,7 +62,7 @@ def save_plist(plist_dict: Dict, filepath: Path):
     """
     with open(filepath, 'wb') as f:
         plistlib.dump(plist_dict, f)
-    print(f"Plist saved to {filepath}")
+    log(f"Plist saved to {filepath}")
 
 
 def load_schedule(json_path: Path) -> Optional[Dict]:
@@ -65,17 +75,17 @@ def load_schedule(json_path: Path) -> Optional[Dict]:
     :rtype: dict or None
     """
     if not json_path.exists():
-        print(f"File {json_path} does not exist, using default schedule.")
+        log(f"File {json_path} does not exist, using default schedule.")
         return None
     try:
         with open(json_path, 'r') as f:
             return json.load(f)
     except Exception as e:
-        print(f"Error loading JSON schedule from {json_path}: {e}")
+        log(f"Error loading JSON schedule from {json_path}: {e}")
         return None
 
 
-def process_intervals_schedule(schedule_intervals: List[Dict]) -> (List[Dict], List[Dict]):
+def process_intervals_schedule(schedule_intervals: List[Dict]) -> Tuple[List[Dict], List[Dict]]:
     """
     Convert interval-based schedule into two lists of events - block and unblock.
 
@@ -101,7 +111,7 @@ def process_intervals_schedule(schedule_intervals: List[Dict]) -> (List[Dict], L
         end = interval.get('end')
 
         if not days or not start or not end:
-            print(f"Skipping invalid interval (missing days/start/end): {interval}")
+            log(f"Skipping invalid interval (missing days/start/end): {interval}")
             continue
 
         # For each day, create two entries: unblock at start, block at end
@@ -120,24 +130,30 @@ def process_intervals_schedule(schedule_intervals: List[Dict]) -> (List[Dict], L
     return block_schedule, unblock_schedule
 
 
+def reload_plist(plist_path: Path) -> None:
+    """
+    Unload and load the plist to apply changes.
+
+    :param plist_path: path to the plist file
+    :type plist_path: Path
+    """
+    subprocess.run(['launchctl', 'unload', str(plist_path)], check=False)
+    subprocess.run(['launchctl', 'load', str(plist_path)], check=False)
+    log(f"Reloaded {plist_path}")
+
+
 def main():
     """Main function to generate and save plist files for blocking and unblocking."""
     user = getpass.getuser()
-    home = Path.home()
 
     # Path to the script from argument or default
     if len(sys.argv) > 1:
         script_path = Path(sys.argv[1]).expanduser()
     else:
-        script_path = home / 'dir_blocker.py'
-
-    # File with paths
-    paths_file = home / '.work_paths.txt'
-    log_dir = home / 'Library' / 'Logs'
+        script_path = MAIN_SCRIPT
 
     # Path to JSON schedule
-    schedule_path = home / '.workblocker_schedule.json'
-
+    schedule_path = SCHEDULE_FILE
     schedule_data = load_schedule(schedule_path)
 
     if schedule_data is None:
@@ -164,19 +180,20 @@ def main():
             block_schedule = schedule_data.get('block', [])
             unblock_schedule = schedule_data.get('unblock', [])
 
-    # Generate plist for blocking
-    block_label = f'com.{user}.workblocker.block'
-    block_args = ['block', '-f', str(paths_file)]
-    block_plist = generate_plist(block_label, str(script_path), block_args, log_dir, block_schedule)
-    block_filepath = home / 'Library' / 'LaunchAgents' / f'{block_label}.plist'
-    save_plist(block_plist, block_filepath)
+    # Generate launch agents
+    launch_agents = Path.home() / 'Library' / 'LaunchAgents'
+    launch_agents.mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Generate plist for unblocking
+    block_label = f'com.{user}.workblocker.block'
+    block_plist = generate_plist(block_label, str(script_path), 'block', LOG_DIR, block_schedule)
+    save_plist(block_plist, launch_agents / f'{block_label}.plist')
+
     unblock_label = f'com.{user}.workblocker.unblock'
-    unblock_args = ['unblock', '-f', str(paths_file)]
-    unblock_plist = generate_plist(unblock_label, str(script_path), unblock_args, log_dir, unblock_schedule)
-    unblock_filepath = home / 'Library' / 'LaunchAgents' / f'{unblock_label}.plist'
-    save_plist(unblock_plist, unblock_filepath)
+    unblock_plist = generate_plist(unblock_label, str(script_path), 'unblock', LOG_DIR, unblock_schedule)
+    save_plist(unblock_plist, launch_agents / f'{unblock_label}.plist')
+    reload_plist(launch_agents / f'{block_label}.plist')
+    reload_plist(launch_agents / f'{unblock_label}.plist')
 
 
 if __name__ == '__main__':

@@ -2,12 +2,24 @@
 
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from commons import log, notify
 
 BASE_DIR = Path(__file__).resolve().parent
 WORK_MODE_FILE = BASE_DIR / ".work_mode"
+
+
+def notify_countdown(seconds: int):
+    """Send countdown notifications from N to 1."""
+    for i in reversed(range(1, seconds + 1)):
+        notify(
+            f"Blocking in {i} seconds",
+            subtitle="Stop everything you're doing now!",
+            sound=(i == 1 or i == 10)
+        )
+        time.sleep(1)
 
 
 def run_script(script: str, action: str) -> None:
@@ -63,7 +75,7 @@ def main():
     Parses the command line argument ('block' or 'unblock') and runs
     all managed scripts accordingly.
     """
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         usage()
 
     action = sys.argv[1].lower()
@@ -71,6 +83,19 @@ def main():
         usage()
 
     scripts = ["dir_blocker.py", "net_blocker.py", "app_dropper.py"]
+
+    action = sys.argv[1].lower()
+    if action not in ("block", "unblock"):
+        usage()
+
+    warn_mode = '--warn' in sys.argv
+
+    if action == "block" and warn_mode:
+        notify("🚨 Blocking in 5 minutes", subtitle="Get ready to stop working", sound=True)
+        time.sleep(4 * 60)
+        notify("⚠️ Blocking in 1 minute", subtitle="Wrap up your work", sound=True)
+        time.sleep(50)
+        notify_countdown(10)
 
     # Set/reset lock file
     if action == "block":
