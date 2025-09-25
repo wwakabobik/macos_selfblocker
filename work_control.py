@@ -7,12 +7,18 @@ from pathlib import Path
 
 from commons import log, notify
 
+
 BASE_DIR = Path(__file__).resolve().parent
 WORK_MODE_FILE = BASE_DIR / ".work_mode"
 
 
-def notify_countdown(seconds: int):
-    """Send countdown notifications from N to 1."""
+def notify_countdown(seconds: int) -> None:
+    """
+    Send countdown notifications from N to 1.
+
+    :param seconds: Number of seconds to count down from
+    :type seconds: int
+    """
     for i in reversed(range(1, seconds + 1)):
         notify(
             f"Blocking in {i} seconds",
@@ -61,10 +67,9 @@ def run_script(script: str, action: str) -> None:
         sys.exit(1)
 
 
-
 def usage() -> None:
     """Print usage instructions and exit the program."""
-    print(f"Usage:\n  {sys.argv[0]} block\n  {sys.argv[0]} unblock")
+    log(f"Usage:\n  {sys.argv[0]} block\n  {sys.argv[0]} unblock")
     sys.exit(1)
 
 
@@ -84,10 +89,6 @@ def main():
 
     scripts = ["dir_blocker.py", "net_blocker.py", "app_dropper.py"]
 
-    action = sys.argv[1].lower()
-    if action not in ("block", "unblock"):
-        usage()
-
     warn_mode = '--warn' in sys.argv
 
     if action == "block" and warn_mode:
@@ -104,6 +105,7 @@ def main():
             log("Removed .work_mode file — no more work!")
         else:
             log(".work_mode file already absent.")
+            return # Already blocked
     elif action == "unblock":
         WORK_MODE_FILE.touch()
         log("Created .work_mode file — work mode is ON.")

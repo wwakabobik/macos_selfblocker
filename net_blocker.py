@@ -104,9 +104,7 @@ def apply_pf() -> None:
 
 
 def disable_pf_block() -> None:
-    """
-    Clear anchor file and reload pf without blocking rules.
-    """
+    """Clear anchor file and reload pf without blocking rules."""
     try:
         # Just empty the anchor file instead of deleting it
         with open(ANCHOR_FILE, "w") as f:

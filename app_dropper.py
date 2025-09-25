@@ -27,6 +27,7 @@ from typing import List
 
 from commons import log, notify
 
+
 BASE_DIR = Path(__file__).resolve().parent
 OSASCRIPT = "/usr/bin/osascript"
 PKILL = "/usr/bin/pkill"
@@ -55,6 +56,8 @@ def apple_script_quit(app_name: str) -> bool:
 
     :param app_name: Application name (as shown in macOS)
     :type app_name: str
+    :return: True if AppleScript command issued, False on error
+    :rtype: bool
     """
     script = f'tell application "{app_name}" to quit'
     try:
@@ -241,6 +244,7 @@ def drop_entry(entry: str, force: bool = False, do_unload: bool = True, dry: boo
      :param do_unload: if True, try to unload launch agents
      :type do_unload: bool
      :param dry: if True, do not actually perform actions
+     :type dry: bool
     """
     log(f"Processing '{entry}'")
     # use different strategies

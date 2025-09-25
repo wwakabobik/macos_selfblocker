@@ -68,12 +68,14 @@ def unblock_path(path: str) -> None:
         log(f"Subprocess error during unblocking {path}: {e}")
 
 
-def read_paths_from_file(filepath: str):
+def read_paths_from_file(filepath: str) -> list[str]:
     """
     Read paths from a file, one per line.
 
     :param filepath: path to the file
     :type filepath: str
+    :return: list of paths
+    :rtype: list[str]
     """
     if not os.path.isfile(filepath):
         log(f"File not found: {filepath}")
@@ -130,7 +132,6 @@ def main():
         notify(f"Access to projects ({len(paths)}) is unblocked. You can work now!")
     else:
         usage()
-
 
 
 if __name__ == "__main__":

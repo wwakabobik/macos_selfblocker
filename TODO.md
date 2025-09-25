@@ -1,1 +1,7 @@
-[ ] Unify all paths using pathlib instead of os.path
+- [ ] Unify all paths using pathlib instead of os.path
+- [ ] Implement remote control for third-person blocking (i.e. wife)
+- [ ] Proof before unblock + logging
+- [ ] Access check
+- [ ] Implement more accurate check against unexpected unblock (manual reset of access rights and stopping netblock)
+- [ ] GUI (status + dashboard of overrides)
+- [ ] Prevent to re-run apps again (e.g. Slack, Mail, etc.)
