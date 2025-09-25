@@ -248,7 +248,7 @@ This will generate and install the necessary `plist` files in your `~/Library/La
 All is set up now, so you can start using the tool.
 If you try to unblock yourself during non-work hours, the script won't do it, moreover, all unblocked stuff will be blocked again soon.
 
-## Can override?
+## Can you override?
 
 Sure, you can.
 It's not strongest and robust, secure system in the world, but it will make your life harder to ruin your life with senseless work.
