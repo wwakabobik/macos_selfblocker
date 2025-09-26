@@ -63,7 +63,7 @@ def notify(message: str, subtitle: str = "", title: str = "🚫 Self Blocker", s
 
 
 def check_work_mode_file() -> None:
-    """Prevent unblock unless .work_mode exists (i.e. it's work time)."""
+    """Prevent unblock unless .work_mode exists (i.e. it's not work time)."""
     if WORK_MODE_FILE.exists():
         log("❌ Cannot unblock: not work time.")
         sys.exit(1)

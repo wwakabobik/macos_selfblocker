@@ -99,16 +99,21 @@ def main():
         notify_countdown(10)
 
     # Set/reset lock file
+    # Set/reset lock file
     if action == "block":
+        if not WORK_MODE_FILE.exists():
+            WORK_MODE_FILE.touch()
+            log("Created .work_mode file — blocking work (not work time).")
+        else:
+            log(".work_mode file already exists — already blocked.")
+            return  # Already blocked
+    elif action == "unblock":
         if WORK_MODE_FILE.exists():
             WORK_MODE_FILE.unlink()
-            log("Removed .work_mode file — no more work!")
+            log("Removed .work_mode file — work time is ON.")
         else:
-            log(".work_mode file already absent.")
-            return # Already blocked
-    elif action == "unblock":
-        WORK_MODE_FILE.touch()
-        log("Created .work_mode file — work mode is ON.")
+            log(".work_mode file already absent — already unblocked.")
+            return  # Already unblocked
 
     for script in scripts:
         run_script(script, action)
