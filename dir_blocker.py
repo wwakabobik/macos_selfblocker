@@ -20,7 +20,8 @@ SUDO_BIN = "/usr/bin/sudo"
 
 def block_path(path: str) -> None:
     """
-    Block access to the specified path by setting permissions to 0.
+    Block access to the specified path by setting permissions to 0,
+    skipping symlinks and files outside the root.
 
     :param path: path to block
     :type path: str
@@ -29,22 +30,41 @@ def block_path(path: str) -> None:
         log(f"Path not found or inaccessible: {path}")
         return
 
+    root_path = os.path.abspath(path)
+
     try:
-        for root, dirs, files in os.walk(path, topdown=False):
-            for f in files:
+        for root, dirs, files in os.walk(root_path, topdown=False, followlinks=False):
+            for name in files:
+                file_path = os.path.join(root, name)
+                if os.path.islink(file_path):
+                    target = os.path.realpath(file_path)
+                    if not target.startswith(root_path):
+                        log(f"Skipping external symlink file: {file_path} -> {target}")
+                        continue
                 try:
-                    os.chmod(os.path.join(root, f), 0)
+                    os.chmod(file_path, 0)
                 except Exception as e:
-                    log(f"Error chmod file {f}: {e}")
-            for d in dirs:
+                    log(f"Error chmod file {file_path}: {e}")
+
+            for name in dirs:
+                dir_path = os.path.join(root, name)
+                if os.path.islink(dir_path):
+                    target = os.path.realpath(dir_path)
+                    if not target.startswith(root_path):
+                        log(f"Skipping external symlink dir: {dir_path} -> {target}")
+                        continue
                 try:
-                    os.chmod(os.path.join(root, d), 0)
+                    os.chmod(dir_path, 0)
                 except Exception as e:
-                    log(f"Error chmod directory {d}: {e}")
-        os.chmod(path, 0)
+                    log(f"Error chmod directory {dir_path}: {e}")
+
+        if not os.path.islink(root_path):
+            os.chmod(root_path, 0)
+
         log(f"Access for {path} is now blocked")
     except Exception as e:
         log(f"Error blocking {path}: {e}")
+
 
 
 def unblock_path(path: str) -> None:
