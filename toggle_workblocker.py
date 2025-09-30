@@ -14,6 +14,7 @@ AGENT_TEMPLATE = f"com.{USERNAME}.workblocker"
 AGENT_SUFFIXES = [
     "block",
     "unblock",
+    "relock",
     "relock_loader",
     "relock_unloader",
 ]
