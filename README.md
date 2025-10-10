@@ -285,6 +285,6 @@ This repo is my version of a fire escape. Use it, fork it, break the glass.
 
 ## Donations & contributions
 
-If you like this project, you can support it by donating via [DonationAlerts](https://www.donationalerts.com/r/rocketsciencegeek).
+If you like this project, you can support it by donating via [DonationAlerts](https://www.donationalerts.com/r/rocketsciencegeek), [Buy Me a Coffee](https://www.buymeacoffee.com/wwakabobik), or [ThanksDev](https://thanksdev.com/wwakabobik).
 
 This is a personal project, so if you find any issues or have suggestions for improvement, please feel free to open an issue or submit a pull request on GitHub.
